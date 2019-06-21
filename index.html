@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <title>Maze Game</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/6.2.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/6.2.0/firebase-firestore.js"></script>
+</head>
+
+<body>
+  <div class="grid">
+    <div id="header">
+      <h2>Maze</h2>
+      <p id="p1"><b>Real-time - Multiplayer - Game</b></p>
+    </div>
+    <div id="content">
+      <canvas id="canvas"></canvas>
+      Your browser does not support the HTML5 canvas tag.
+      </canvas>
+    </div>
+    <div id="controls">
+      <button class="button" onclick="moveUp()">UP</button><br><br>
+      <button class="button" onclick="moveLeft()">LEFT</button>
+      <button class="button" onclick="moveRight()">RIGHT</button><br><br>
+      <button class="button" onclick="moveDown()">DOWN</button>
+      <p><i><sub>Use buttons or press arrows/WASD keys.</sub></i></p>
+    </div>
+    <div id="footer">
+      <p><sub>Tools used: HTML, CSS, JavaScript and Firebase.</sub></p>
+      <p><sub>Joaquín Moreno Altuzar (2019): <a href="https://github.com/jmavs21">Github link.</a></sub></p>
+    </div>
+  </div>
+  <script type="text/javascript" src="index.js"></script>
+</body>
+
+</html>

@@ -37,6 +37,7 @@
 	var _goal;
 
 	window.onload = function () {
+		validateGameSettings();
 		gameListener();
 	};
 
@@ -71,6 +72,21 @@
 		else if (event.keyCode == 39 || event.keyCode == 68)  // right, d
 			moveRight();
 	});
+
+	function validateGameSettings() {
+		gameRef.doc("settings").get().then(function (doc) {
+			if (!doc.exists) {
+				gameRef.doc("settings").set({
+					startLevel: 8,
+					lastLevel: 16,
+					rows: 8,
+					seed: 100
+				});
+			}
+		}).catch(function (error) {
+			console.log("Error GET game settings document:", error);
+		});
+	}
 
 	function deletePlayer(id) {
 		if (id !== null) {

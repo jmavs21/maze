@@ -64,13 +64,25 @@
 
 	document.body.addEventListener("keydown", function (event) {
 		if (event.keyCode == 38 || event.keyCode == 87)       // up, w
+		{
+			event.preventDefault();
 			moveUp();
+		}
 		else if (event.keyCode == 37 || event.keyCode == 65)  // left, a
+		{
+			event.preventDefault();
 			moveLeft();
+		}
 		else if (event.keyCode == 40 || event.keyCode == 83)  // down, s
+		{
+			event.preventDefault();
 			moveDown();
+		}
 		else if (event.keyCode == 39 || event.keyCode == 68)  // right, d
+		{
+			event.preventDefault();
 			moveRight();
+		}
 	});
 
 	function validateGameSettings() {

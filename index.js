@@ -2,7 +2,7 @@
  * Maze Game.
  */
 (function () {
-	var firebaseConfig = {
+	let firebaseConfig = {
 		apiKey: "AIzaSyA26HDdO0BHSkwwNX32RXRMrkVuBSbPhu4",
 		authDomain: "maze-1987.firebaseapp.com",
 		databaseURL: "https://maze-1987.firebaseio.com",
@@ -15,26 +15,26 @@
 		document.getElementById("p1").innerHTML = "ERROR: No connection to Firebase.";
 	}
 	firebase.initializeApp(firebaseConfig);
-	var db = firebase.firestore();
-	var gameRef = db.collection("game");
-	var playersRef = db.collection("players");
+	let db = firebase.firestore();
+	let gameRef = db.collection("game");
+	let playersRef = db.collection("players");
 
-	var _canvas = document.getElementById("canvas");
+	let _canvas = document.getElementById("canvas");
 	_canvas.width = document.getElementById("content").clientWidth;
 	_canvas.height = _canvas.width;
-	var _context = _canvas.getContext("2d");
-	var _canvasSize = _canvas.width;
-	var _colorMaze = "#000000";
-	var _player = null;
-	var _idPlayer = null;
-	var _rows = null;
-	var _startLevel;
-	var _lastLevel;
-	var _seed;
-	var _wallSize;
-	var _walls;
-	var _graph;
-	var _goal;
+	let _context = _canvas.getContext("2d");
+	let _canvasSize = _canvas.width;
+	let _colorMaze = "#000000";
+	let _player = null;
+	let _idPlayer = null;
+	let _rows = null;
+	let _startLevel;
+	let _lastLevel;
+	let _seed;
+	let _wallSize;
+	let _walls;
+	let _graph;
+	let _goal;
 
 	window.onload = function () {
 		validateGameSettings();
@@ -128,7 +128,7 @@
 		gameRef.where("rows", ">=", 2)
 			.onSnapshot(function (querySnapshot) {
 				querySnapshot.forEach(function (doc) {
-					var data = doc.data();
+					let data = doc.data();
 					_startLevel = data.startLevel;
 					_lastLevel = data.lastLevel;
 					_rows = data.rows;
@@ -143,7 +143,7 @@
 	let playersListener = function () {
 		playersRef.where("x", ">=", 0)
 			.onSnapshot(function (querySnapshot) {
-				var players = [];
+				let players = [];
 				querySnapshot.forEach(function (doc) {
 					players.push(new Player(0, new Position(doc.data().x, doc.data().y), doc.data().c));
 				});
@@ -213,12 +213,12 @@
 	}
 
 	function createAllWalls() {
-		var numOfWalls = (((_rows - 1) * _rows) * 2) | 0;
-		var walls = [];
-		var group = _rows - 1;
-		var first = 0;
-		var j = (numOfWalls / 2) | 0;
-		var second = _rows;
+		let numOfWalls = (((_rows - 1) * _rows) * 2) | 0;
+		let walls = [];
+		let group = _rows - 1;
+		let first = 0;
+		let j = (numOfWalls / 2) | 0;
+		let second = _rows;
 		for (let i = 0; i < (numOfWalls / 2) | 0; i++) {
 			walls[i] = new Wall(first, ++first, true);
 			if (i % group === group - 1)
@@ -235,7 +235,7 @@
 	}
 
 	function swap(i, j, walls) {
-		var tmp = walls[i];
+		let tmp = walls[i];
 		walls[i] = walls[j];
 		walls[j] = tmp;
 	}
@@ -245,22 +245,22 @@
 	}
 
 	function pseudorandom() {
-		var x = Math.sin(_seed++) * 10000;
+		let x = Math.sin(_seed++) * 10000;
 		return x - Math.floor(x);
 	}
 
 	function removeNonWalls() {
-		var nonWalls = [];
-		var uf = new UnionFind(_rows * _rows);
+		let nonWalls = [];
+		let uf = new UnionFind(_rows * _rows);
 		for (let i = 0; i < _walls.length; i++) {
-			var wall = _walls[i];
+			let wall = _walls[i];
 			if (!uf.connected(wall.v, wall.w)) {
 				uf.union(wall.v, wall.w);
 				nonWalls.push(wall);
 				_walls[i] = null;
 			}
 		}
-		var mazeWalls = [];
+		let mazeWalls = [];
 		for (let i = 0; i < _walls.length; i++) {
 			if (_walls[i] !== null) {
 				mazeWalls.push(_walls[i]);
@@ -271,7 +271,7 @@
 	}
 
 	function createGraphFromNonWalls(nonWalls) {
-		var graph = new Graph(_rows * _rows);
+		let graph = new Graph(_rows * _rows);
 		for (let wall of nonWalls) {
 			graph.addEdge(wall.v, wall.w);
 			graph.addEdge(wall.w, wall.v);
@@ -280,15 +280,15 @@
 	}
 
 	function createPlayerPosition() {
-		var x = (Math.random() * (_wallSize / 2.0)) + (_wallSize / 4.0);
-		var y = (Math.random() * (_wallSize / 2.0)) + (_wallSize / 4.0);
-		var color = _player === null ? getRandomColor() : _player.color;
+		let x = (Math.random() * (_wallSize / 2.0)) + (_wallSize / 4.0);
+		let y = (Math.random() * (_wallSize / 2.0)) + (_wallSize / 4.0);
+		let color = _player === null ? getRandomColor() : _player.color;
 		return new Player(0, new Position(x, y), color);
 	}
 
 	function getRandomColor() {
-		var letters = '0123456789ABCDEF';
-		var color = '#';
+		let letters = '0123456789ABCDEF';
+		let color = '#';
 		for (let i = 0; i < 6; i++) {
 			color += letters[Math.floor(Math.random() * 16)];
 		}
@@ -298,9 +298,9 @@
 	function drawMaze() {
 		_context.clearRect(0, 0, _canvas.width, _canvas.height);
 		for (let wall of _walls) {
-			var v = wall.v;
-			var xWidth = _wallSize * (v % _rows);
-			var yHeight = ((v / _rows) | 0) * _wallSize + _wallSize;
+			let v = wall.v;
+			let xWidth = _wallSize * (v % _rows);
+			let yHeight = ((v / _rows) | 0) * _wallSize + _wallSize;
 			if (wall.isVertical) {
 				drawLine(xWidth + _wallSize, yHeight, xWidth + _wallSize, yHeight - _wallSize);
 			} else {
@@ -423,7 +423,7 @@
 				throw "IllegalArgumentException: vertex " + v + " is not between 0 and " + (this.V - 1);
 		}
 		toString() {
-			var s = [];
+			let s = [];
 			s.push(this.V + " vertices, " + this.E + " edges \n");
 			for (let v = 0; v < this.V; v++) {
 				s.push(v + ": ");
@@ -456,8 +456,8 @@
 			return p;
 		}
 		union(p, q) {
-			var pP = this.find(p);
-			var qP = this.find(q);
+			let pP = this.find(p);
+			let qP = this.find(q);
 			if (pP === qP) return;
 			if (this.rank[pP] < this.rank[qP])
 				this.parent[pP] = qP;

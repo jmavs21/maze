@@ -1,7 +1,7 @@
 /**
  * Maze Game.
  */
-(function () {
+(() => {
 	let firebaseConfig = {
 		apiKey: "AIzaSyA26HDdO0BHSkwwNX32RXRMrkVuBSbPhu4",
 		authDomain: "maze-1987.firebaseapp.com",
@@ -36,98 +36,88 @@
 	let _graph;
 	let _goal;
 
-	window.onload = function () {
+	window.onload = () => {
 		validateGameSettings();
 		gameListener();
 	};
 
-	window.onunload = window.onbeforeunload = function () {
+	window.onunload = window.onbeforeunload = () => {
 		deletePlayer(_idPlayer);
 		return null;
 	};
 
-	window.moveUp = function () {
-		drawPlayerMove(-_rows, -_wallSize, true);
-	}
+	window.moveUp = () => drawPlayerMove(-_rows, -_wallSize, true);
+	window.moveDown = () => drawPlayerMove(_rows, _wallSize, true);
+	window.moveLeft = () => drawPlayerMove(-1, -_wallSize, false);
+	window.moveRight = () => drawPlayerMove(1, _wallSize, false);
 
-	window.moveDown = function () {
-		drawPlayerMove(_rows, _wallSize, true);
-	}
-
-	window.moveLeft = function () {
-		drawPlayerMove(-1, -_wallSize, false);
-	}
-
-	window.moveRight = function () {
-		drawPlayerMove(1, _wallSize, false);
-	}
-
-	document.body.addEventListener("keydown", function (event) {
-		if (event.keyCode == 38 || event.keyCode == 87)       // up, w
-		{
+	document.body.addEventListener("keydown", (event) => {
+		if (event.keyCode == 38 || event.keyCode == 87) {      // up, w
 			event.preventDefault();
 			moveUp();
 		}
-		else if (event.keyCode == 37 || event.keyCode == 65)  // left, a
-		{
+		else if (event.keyCode == 37 || event.keyCode == 65) { // left, a
 			event.preventDefault();
 			moveLeft();
 		}
-		else if (event.keyCode == 40 || event.keyCode == 83)  // down, s
-		{
+		else if (event.keyCode == 40 || event.keyCode == 83) { // down, s
 			event.preventDefault();
 			moveDown();
 		}
-		else if (event.keyCode == 39 || event.keyCode == 68)  // right, d
-		{
+		else if (event.keyCode == 39 || event.keyCode == 68) { // right, d
 			event.preventDefault();
 			moveRight();
 		}
 	});
 
 	function validateGameSettings() {
-		gameRef.doc("settings").get().then(function (doc) {
-			if (!doc.exists) {
-				gameRef.doc("settings").set({
-					startLevel: 8,
-					lastLevel: 16,
-					rows: 8,
-					seed: 100
-				});
-			}
-		}).catch(function (error) {
-			console.log("Error GET game settings document:", error);
-		});
+		gameRef
+			.doc("settings")
+			.get()
+			.then(doc => {
+				if (!doc.exists) {
+					gameRef
+						.doc("settings")
+						.set({
+							startLevel: 8,
+							lastLevel: 16,
+							rows: 8,
+							seed: 100
+						});
+				}
+			})
+			.catch(error => console.log("Error GET game settings document:", error));
 	}
 
 	function deletePlayer(id) {
 		if (id !== null) {
-			playersRef.doc(id).delete()
-				.catch(function (error) {
-					console.error("Players error DELETING player: ", error);
-				});
+			playersRef
+				.doc(id)
+				.delete()
+				.catch(error => console.error("Players error DELETING player: ", error));
 		}
 	}
 
 	function deleteUnusedPlayers() {
-		setTimeout(function () {
-			playersRef.get().then((querySnapshot) => {
-				querySnapshot.forEach((doc) => {
-					if (doc.data().r !== _rows) {
-						deletePlayer(doc.id);
-					}
-				});
-			})
-				.catch(function (error) {
-					console.log("Error DELETING players: ", error);
-				});
+		setTimeout(() => {
+			playersRef
+				.get()
+				.then(querySnapshot => {
+					querySnapshot.forEach(doc => {
+						if (doc.data().r !== _rows) {
+							deletePlayer(doc.id);
+						}
+					});
+				})
+				.catch(error => console.log("Error DELETING players: ", error));
 		}, 3000);
 	}
 
-	let gameListener = function () {
-		gameRef.where("rows", ">=", 2)
-			.onSnapshot(function (querySnapshot) {
-				querySnapshot.forEach(function (doc) {
+	let gameListener = () => {
+		gameRef
+			.where("rows", ">=", 2)
+			.onSnapshot(querySnapshot => {
+				querySnapshot.forEach(doc => {
 					let data = doc.data();
 					_startLevel = data.startLevel;
 					_lastLevel = data.lastLevel;
@@ -140,11 +130,12 @@
 			});
 	};
 
-	let playersListener = function () {
-		playersRef.where("x", ">=", 0)
-			.onSnapshot(function (querySnapshot) {
+	let playersListener = () => {
+		playersRef
+			.where("x", ">=", 0)
+			.onSnapshot(querySnapshot => {
 				let players = [];
-				querySnapshot.forEach(function (doc) {
+				querySnapshot.forEach(doc => {
 					players.push(new Player(0, new Position(doc.data().x, doc.data().y), doc.data().c));
 				});
 				drawPlayers(players);
@@ -155,40 +146,37 @@
 		if (_idPlayer === null) {
 			addNewPlayer();
 		} else {
-			playersRef.doc(_idPlayer).update({
-				x: _player.position.x,
-				y: _player.position.y,
-				r: _rows
-			})
-				.catch(function (error) {
-					console.error("Player UPDATING error: ", error);
-				});
+			playersRef
+				.doc(_idPlayer)
+				.update({
+					x: _player.position.x,
+					y: _player.position.y,
+					r: _rows
+				})
+				.catch(error => console.error("Player UPDATING error: ", error));
 		}
 	}
 
 	function updateGameSettings() {
-		gameRef.doc("settings").update({
-			rows: _rows,
-			seed: _seed,
-		})
-			.catch(function (error) {
-				console.error("Game settings UPDATING error: ", error);
-			});
+		gameRef
+			.doc("settings")
+			.update({
+				rows: _rows,
+				seed: _seed,
+			})
+			.catch(error => console.error("Game settings UPDATING error: ", error));
 	}
 
 	function addNewPlayer() {
-		playersRef.add({
-			x: _player.position.x,
-			y: _player.position.y,
-			c: _player.color,
-			r: _rows
-		})
-			.then(function (playersRef) {
-				_idPlayer = playersRef.id;
+		playersRef
+			.add({
+				x: _player.position.x,
+				y: _player.position.y,
+				c: _player.color,
+				r: _rows
 			})
-			.catch(function (error) {
-				console.error("Players document ADD error: ", error);
-			})
+			.then(playersRef => _idPlayer = playersRef.id)
+			.catch(error => console.error("Players document ADD error: ", error))
 			.then(playersListener);
 	}
 
@@ -213,13 +201,14 @@
 	}
 
 	function createAllWalls() {
-		let numOfWalls = (((_rows - 1) * _rows) * 2) | 0;
+		let numOfWalls = Math.floor(((_rows - 1) * _rows) * 2);
 		let walls = [];
 		let group = _rows - 1;
 		let first = 0;
-		let j = (numOfWalls / 2) | 0;
+		let half = Math.floor(numOfWalls / 2);
+		let j = half;
 		let second = _rows;
-		for (let i = 0; i < (numOfWalls / 2) | 0; i++) {
+		for (let i = 0; i < half; i++) {
 			walls[i] = new Wall(first, ++first, true);
 			if (i % group === group - 1)
 				first++;
@@ -300,7 +289,7 @@
 		for (let wall of _walls) {
 			let v = wall.v;
 			let xWidth = _wallSize * (v % _rows);
-			let yHeight = ((v / _rows) | 0) * _wallSize + _wallSize;
+			let yHeight = Math.floor(v / _rows) * _wallSize + _wallSize;
 			if (wall.isVertical) {
 				drawLine(xWidth + _wallSize, yHeight, xWidth + _wallSize, yHeight - _wallSize);
 			} else {
@@ -359,8 +348,7 @@
 			if (_rows >= _lastLevel) {
 				_rows = _startLevel;
 				_seed = getRandom(1, 1000);
-			}
-			else {
+			} else {
 				_rows++;
 			}
 			updateGameSettings();

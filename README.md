@@ -65,7 +65,7 @@ git clone https://github.com/jmavs21/maze.git
 6. Move the cloned files to the __public__ folder created on Step 4
 
 7. Update __index.js__ file with your Firebase configuration (firebaseConfig variable)
-* __Note__: These values are in your [Firebase console](https://console.firebase.google.com/) --> Project settings --> Config
+* __Note__: These values are in your [Firebase console](https://console.firebase.google.com/) -> Project settings -> Config
 
 8. Use the following command to test locally
 ```sh
@@ -77,7 +77,7 @@ firebase serve -o 0.0.0.0
 firebase deploy
 ```
 
-10. To view your database go to your [Firebase console](https://console.firebase.google.com/) --> Database
+10. To view your database go to your [Firebase console](https://console.firebase.google.com/) -> Database
 
 11. The first time you enter the application the __game__ collection is going to be created with the __settings__ document and default values.
 

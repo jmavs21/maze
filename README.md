@@ -22,7 +22,7 @@ The game was implemented using the following tools:
 
 #### * JavaScript
 
-JavaScript was used to generate and draw the maze and managing calls to Firebase API.
+VanillaJS was used to generate and draw the maze and managing calls to Firebase API.
 
 #### * CSS
 

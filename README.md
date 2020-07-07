@@ -6,6 +6,8 @@ No need to register or create an account, just open the following link on your w
 
 - Link to [Maze Game Demo](https://maze-1987.firebaseapp.com)
 
+![](maze-flow.gif)
+
 ## How to play
 
 Goal of the game is to move your player (circle) to the goal (black square).

@@ -1,52 +1,53 @@
-.grid { /* mobile */
-    display: grid;
-    grid-template-rows: 0.5fr 2fr 1fr 0.5fr;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-        "header"
-        "main"
-        "control"
-        "footer";
+.grid {
+  /* mobile */
+  display: grid;
+  grid-template-rows: 0.5fr 2fr 1fr 0.5fr;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    'header'
+    'main'
+    'control'
+    'footer';
 }
-@media screen and (min-width:34em) {
-    .grid { /* PC */
-        grid-template-rows: 0.5fr 2fr 0.5fr;
-        grid-template-columns: 1.5fr 2fr;
-        grid-template-areas:
-            "header header"
-            "main control"
-            "footer footer";
-    }
+@media screen and (min-width: 34em) {
+  .grid {
+    /* PC */
+    grid-template-rows: 0.5fr 2fr 0.5fr;
+    grid-template-columns: 1.5fr 2fr;
+    grid-template-areas:
+      'header header'
+      'main control'
+      'footer footer';
+  }
 }
 .button {
-    font-size: 16px;
-  }
-#header { 
-    grid-area: header;
-    background: #eaf7f6;
-    text-align: center;
+  font-size: 16px;
 }
-#content { 
-    grid-area: main;
-    position: relative;
-    padding-bottom: 100%;
+#header {
+  grid-area: header;
+  background: #f0ffff;
+  text-align: center;
+}
+#content {
+  grid-area: main;
+  position: relative;
+  padding-bottom: 100%;
 }
 #canvas {
-    background: #ffffff;
-    position: absolute;
-    height: 100%;
-    width: 100%;
+  background: #ffffff;
+  position: absolute;
+  height: 100%;
+  width: 100%;
 }
-#controls { 
-    grid-area: control;
-    background: #ffffff;
-    margin: auto;
-    text-align:center;
-    touch-action: manipulation;
+#controls {
+  grid-area: control;
+  background: #ffffff;
+  margin: auto;
+  text-align: center;
+  touch-action: manipulation;
 }
-#footer { 
-    grid-area: footer;
-    background: #eaf7f6;
-    text-align: left;
+#footer {
+  grid-area: footer;
+  background: #f0ffff;
+  text-align: left;
 }
-

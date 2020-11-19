@@ -1,5 +1,5 @@
+/* mobile */
 .grid {
-  /* mobile */
   display: grid;
   grid-template-rows: 0.5fr 2fr 1fr 0.5fr;
   grid-template-columns: 1fr;
@@ -9,9 +9,9 @@
     'control'
     'footer';
 }
+/* PC */
 @media screen and (min-width: 34em) {
   .grid {
-    /* PC */
     grid-template-rows: 0.5fr 2fr 0.5fr;
     grid-template-columns: 1.5fr 2fr;
     grid-template-areas:

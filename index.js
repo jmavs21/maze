@@ -1,344 +1,10 @@
-/**
- * Maze Game.
- */
 (() => {
-  if (typeof firebase === 'undefined')
-    document.getElementById('p1').innerHTML = 'No connection to Firebase!';
-
-  const db = firebase.firestore();
-
-  const gameRef = db.collection('game');
-  const playersRef = db.collection('players');
-
-  const _canvas = document.getElementById('canvas');
-  _canvas.width = document.getElementById('content').clientWidth;
-  _canvas.height = _canvas.width;
-  const _context = _canvas.getContext('2d');
-  const _colorMaze = '#000000';
-
-  let _player = null;
-  let _idPlayer = null;
-  let _rows = null;
-  let _startLevel;
-  let _lastLevel;
-  let _seed;
-  let _wallSize;
-  let _walls;
-  let _graph;
-  let _goal;
-
-  window.onload = async () => await startGameState();
-
-  window.onunload = window.onbeforeunload = () => {
-    deletePlayer(_idPlayer);
-    return null;
-  };
-
-  window.moveUp = async () => await drawPlayerMove(-_rows, -_wallSize, true);
-  window.moveDown = async () => await drawPlayerMove(_rows, _wallSize, true);
-  window.moveLeft = async () => await drawPlayerMove(-1, -_wallSize, false);
-  window.moveRight = async () => await drawPlayerMove(1, _wallSize, false);
-
-  document.body.addEventListener('keydown', async (e) => {
-    if (e.key === 'ArrowUp' || e.key === 'W' || e.key === 'w') {
-      e.preventDefault();
-      await window.moveUp();
-    } else if (e.key === 'ArrowLeft' || e.key === 'A' || e.key === 'a') {
-      e.preventDefault();
-      await window.moveLeft();
-    } else if (e.key === 'ArrowDown' || e.key === 'S' || e.key === 's') {
-      e.preventDefault();
-      await window.moveDown();
-    } else if (e.key === 'ArrowRight' || e.key === 'D' || e.key === 'd') {
-      e.preventDefault();
-      await window.moveRight();
-    }
-  });
-
-  window.addEventListener('unhandledrejection', (e) => {
-    console.error('Unhandled Firebase reject:', e.reason);
-  });
-
-  const startGameState = async () => {
-    await createSettingsIfNeeded();
-    createSettingsListener();
-  };
-
-  const createSettingsIfNeeded = async () => {
-    const settingsRef = gameRef.doc('settings');
-    const settings = await settingsRef.get();
-    if (!settings.exists) {
-      settingsRef.set({
-        startLevel: 8,
-        lastLevel: 16,
-        rows: 8,
-        seed: 100,
-      });
-    }
-  };
-
-  const createSettingsListener = () => {
-    gameRef.where('rows', '>=', 2).onSnapshot(setGameWithSettings);
-  };
-
-  const setGameWithSettings = async (settings) => {
-    settings.forEach((setting) => {
-      const data = setting.data();
-      _startLevel = data.startLevel;
-      _lastLevel = data.lastLevel;
-      _rows = data.rows;
-      _seed = data.seed;
-    });
-    drawGame();
-    await updatePlayer();
-    await deleteUnusedPlayers();
-  };
-
-  const updatePlayer = async () => {
-    if (_idPlayer === null) {
-      await addNewPlayer();
-      createPlayersListener();
-    } else {
-      await playersRef.doc(_idPlayer).update({
-        x: _player.position.x,
-        y: _player.position.y,
-        r: _rows,
-      });
-    }
-  };
-
-  const addNewPlayer = async () => {
-    const newPlayerRef = await playersRef.add({
-      x: _player.position.x,
-      y: _player.position.y,
-      c: _player.color,
-      r: _rows,
-    });
-    _idPlayer = newPlayerRef.id;
-  };
-
-  const createPlayersListener = () => {
-    playersRef.where('x', '>=', 0).onSnapshot(setPlayers);
-  };
-
-  const setPlayers = (queryPlayers) => {
-    const players = [];
-    queryPlayers.forEach((player) => {
-      const data = player.data();
-      players.push(new Player(0, new Position(data.x, data.y), data.c));
-    });
-    drawPlayers(players);
-  };
-
-  const deleteUnusedPlayers = async () => {
-    await waitForActiveGames();
-    const players = await playersRef.get();
-    players.docs.map((player) => {
-      if (player.data().r !== _rows) deletePlayer(player.id);
-    });
-  };
-
-  const waitForActiveGames = () => new Promise((res) => setTimeout(res, 3000));
-
-  const deletePlayer = (id) => {
-    if (id !== null) playersRef.doc(id).delete();
-  };
-
-  const drawPlayerMove = async (toCell, wallWidth, isVerticalMove) => {
-    if (_graph.adjacents(_player.v).has(_player.v + toCell)) {
-      _player.v = _player.v + toCell;
-      if (isVerticalMove) _player.position.y = _player.position.y + wallWidth;
-      else _player.position.x = _player.position.x + wallWidth;
-      drawMaze();
-      drawPlayer(_player.position.x, _player.position.y, _player.color);
-      drawGoal(_goal.x, _goal.y);
-      await wasGoalReached();
-      await updatePlayer();
-    }
-  };
-
-  const wasGoalReached = async () => {
-    if (_player.v === _graph.V - 1) {
-      if (_rows >= _lastLevel) {
-        _rows = _startLevel;
-        _seed = getRandom(1, 1000);
-      } else {
-        _rows++;
-      }
-      await updateGameSettings();
-    }
-  };
-
-  const updateGameSettings = async () => {
-    await gameRef.doc('settings').update({
-      rows: _rows,
-      seed: _seed,
-    });
-  };
-
-  const drawGame = () => {
-    _wallSize = 1.0 / _rows;
-    _walls = createAllWalls();
-    shuffle(_walls);
-    _graph = createGraphFromNonWalls(removeNonWalls());
-    _player = createPlayerPosition();
-    _goal = new Position(
-      1.0 - _wallSize + _wallSize / 3.3,
-      1.0 - _wallSize + _wallSize / 3.3
-    );
-    drawMaze();
-    drawPlayer(_player.position.x, _player.position.y, _player.color);
-    drawGoal(_goal.x, _goal.y);
-  };
-
-  const createAllWalls = () => {
-    const group = _rows - 1;
-    const numOfWalls = Math.floor(group * _rows * 2);
-    const walls = [];
-    let vertical = 0;
-    let horizontal = _rows;
-    const half = Math.floor(numOfWalls / 2);
-    for (let i = 0, j = half; i < half; i++) {
-      walls[i] = new Wall(vertical, ++vertical, true);
-      if (i % group === group - 1) vertical++;
-      walls[j++] = new Wall(i, horizontal++, false);
-    }
-    return walls;
-  };
-
-  const removeNonWalls = () => {
-    const nonWalls = [];
-    const uf = new UnionFind(_rows * _rows);
-    for (let i = 0; i < _walls.length; i++) {
-      const wall = _walls[i];
-      if (!uf.connected(wall.v, wall.w)) {
-        uf.union(wall.v, wall.w);
-        nonWalls.push(wall);
-        _walls[i] = null;
-      }
-    }
-    const mazeWalls = [];
-    for (let i = 0; i < _walls.length; i++) {
-      if (_walls[i] !== null) {
-        mazeWalls.push(_walls[i]);
-      }
-    }
-    _walls = mazeWalls;
-    return nonWalls;
-  };
-
-  const createGraphFromNonWalls = (nonWalls) => {
-    const graph = new Graph(_rows * _rows);
-    for (const wall of nonWalls) {
-      graph.addEdge(wall.v, wall.w);
-    }
-    return graph;
-  };
-
-  const createPlayerPosition = () => {
-    const x = Math.random() * (_wallSize / 2.0) + _wallSize / 4.0;
-    const y = Math.random() * (_wallSize / 2.0) + _wallSize / 4.0;
-    const color = _player === null ? getRandomColor() : _player.color;
-    return new Player(0, new Position(x, y), color);
-  };
-
-  const getRandomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  };
-
-  const drawMaze = () => {
-    _context.clearRect(0, 0, _canvas.width, _canvas.width);
-    for (const wall of _walls) {
-      const v = wall.v;
-      const xWidth = _wallSize * (v % _rows);
-      const yHeight = Math.floor(v / _rows) * _wallSize + _wallSize;
-      if (wall.isVertical) {
-        drawLine(
-          xWidth + _wallSize,
-          yHeight,
-          xWidth + _wallSize,
-          yHeight - _wallSize
-        );
-      } else {
-        drawLine(xWidth, yHeight, xWidth + _wallSize, yHeight);
-      }
-    }
-    drawLine(0.0, 0.0, 1.0, 0.0); // bottom line
-    drawLine(0.0, 0.0, 0.0, 1.0); // left line
-    drawLine(1.0, 0.0, 1.0, 1.0); // right line
-    drawLine(0.0, 1.0, 1.0, 1.0); // upper line
-  };
-
-  const drawLine = (x0, y0, x1, y1) => {
-    _context.beginPath();
-    _context.strokeStyle = _colorMaze;
-    _context.moveTo(scale(x0), scale(y0));
-    _context.lineTo(scale(x1), scale(y1));
-    _context.stroke();
-  };
-
-  const scale = (value) => {
-    return _canvas.width * value;
-  };
-
-  const drawPlayers = (players) => {
-    drawMaze();
-    drawGoal(_goal.x, _goal.y);
-    for (let player of players) {
-      drawPlayer(player.position.x, player.position.y, player.color);
-    }
-  };
-
-  const drawPlayer = (x, y, color) => {
-    _context.beginPath();
-    _context.fillStyle = color;
-    _context.arc(scale(x), scale(y), scale(_wallSize) / 5, 0, 2 * Math.PI);
-    _context.fill();
-  };
-
-  const drawGoal = (x, y) => {
-    _context.beginPath();
-    _context.fillStyle = _colorMaze;
-    _context.rect(
-      scale(x),
-      scale(y),
-      scale(_wallSize) / 2.5,
-      scale(_wallSize) / 2.5
-    );
-    _context.fill();
-  };
-
-  const shuffle = (walls) => {
-    for (let i = 0; i < walls.length; i++) {
-      swap(i, getRandom(0, i), walls);
-    }
-  };
-
-  const swap = (i, j, walls) => {
-    const tmp = walls[i];
-    walls[i] = walls[j];
-    walls[j] = tmp;
-  };
-
-  const getRandom = (min, max) => {
-    return Math.floor(pseudorandom() * (max - min + 1)) + min;
-  };
-
-  const pseudorandom = () => {
-    const x = Math.sin(_seed++) * 10000;
-    return x - Math.floor(x);
-  };
-
-  class Wall {
-    constructor(v, w, isVertical) {
+  class Player {
+    constructor(id, v, position, color) {
+      this.id = id;
       this.v = v;
-      this.w = w;
-      this.isVertical = isVertical;
+      this.position = position;
+      this.color = color;
     }
   }
 
@@ -349,11 +15,29 @@
     }
   }
 
-  class Player {
-    constructor(v, position, color) {
+  class Settings {
+    constructor(startLevel, lastLevel, rows, seed) {
+      this.startLevel = startLevel;
+      this.lastLevel = lastLevel;
+      this.rows = rows;
+      this.seed = seed;
+    }
+  }
+
+  class Maze {
+    constructor([wallSize, walls, graph, goal]) {
+      this.wallSize = wallSize;
+      this.walls = walls;
+      this.graph = graph;
+      this.goal = goal;
+    }
+  }
+
+  class Wall {
+    constructor(v, w, isVertical) {
       this.v = v;
-      this.position = position;
-      this.color = color;
+      this.w = w;
+      this.isVertical = isVertical;
     }
   }
 
@@ -383,7 +67,7 @@
         this.rank[i] = 0;
       }
     }
-    connected(p, q) {
+    isConnected(p, q) {
       return this.find(p) === this.find(q);
     }
     find(p) {
@@ -405,4 +89,336 @@
       }
     }
   }
+
+  if (typeof firebase === 'undefined')
+    document.getElementById('p1').innerHTML = 'No connection to Firebase!';
+
+  const db = firebase.firestore();
+  const gameRef = db.collection('game');
+  const playersRef = db.collection('players');
+  let unsubscribeSettingsListener = null;
+  let unsubscribePlayersListener = null;
+
+  const canvas = document.getElementById('canvas');
+  canvas.width = document.getElementById('content').clientWidth;
+  canvas.height = canvas.width;
+  const context = canvas.getContext('2d');
+  const colorMaze = '#000000';
+
+  const settings = new Settings(8, 16, 8, 100);
+  let maze = null;
+  let player = null;
+
+  window.onload = async () => await startGameState();
+
+  window.onunload = window.onbeforeunload = () => {
+    deletePlayer(player.id);
+    unsubscribeSettingsListener();
+    unsubscribePlayersListener();
+    return null;
+  };
+
+  window.moveUp = async () =>
+    await movePlayer(-settings.rows, -maze.wallSize, true);
+  window.moveDown = async () =>
+    await movePlayer(settings.rows, maze.wallSize, true);
+  window.moveLeft = async () => await movePlayer(-1, -maze.wallSize, false);
+  window.moveRight = async () => await movePlayer(1, maze.wallSize, false);
+
+  document.body.addEventListener('keydown', async (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'W' || e.key === 'w') {
+      e.preventDefault();
+      await window.moveUp();
+    } else if (e.key === 'ArrowLeft' || e.key === 'A' || e.key === 'a') {
+      e.preventDefault();
+      await window.moveLeft();
+    } else if (e.key === 'ArrowDown' || e.key === 'S' || e.key === 's') {
+      e.preventDefault();
+      await window.moveDown();
+    } else if (e.key === 'ArrowRight' || e.key === 'D' || e.key === 'd') {
+      e.preventDefault();
+      await window.moveRight();
+    }
+  });
+
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('Unhandled Firebase reject:', e.reason);
+  });
+
+  const startGameState = async () => {
+    await createSettingsDocIfNeeded();
+    subscribeSettingsListener();
+  };
+
+  const createSettingsDocIfNeeded = async () => {
+    const settingsRef = gameRef.doc('settings');
+    const settingsDoc = await settingsRef.get();
+    if (!settingsDoc.exists) {
+      settingsRef.set({
+        startLevel: settings.startLevel,
+        lastLevel: settings.lastLevel,
+        rows: settings.rows,
+        seed: settings.seed,
+      });
+    }
+  };
+
+  const subscribeSettingsListener = () => {
+    unsubscribeSettingsListener = gameRef
+      .where('rows', '>=', 2)
+      .onSnapshot(settingsOnSnapshot);
+  };
+
+  const settingsOnSnapshot = async (settingsDoc) => {
+    settingsDoc.forEach((setting) => {
+      const data = setting.data();
+      settings.startLevel = data.startLevel;
+      settings.lastLevel = data.lastLevel;
+      settings.rows = data.rows;
+      settings.seed = data.seed;
+    });
+    maze = new Maze(buildMazeUsingRandomizedKruskals());
+    player = resetPlayer(maze.wallSize);
+    if (isNewPlayer()) {
+      await createPlayerDocAndSetId();
+      subscribePlayersListener();
+    } else {
+      await updatePlayerPosition();
+    }
+    await deleteUnusedPlayers();
+  };
+
+  const resetPlayer = (wallSize) => {
+    const x = Math.random() * (wallSize / 2.0) + wallSize / 4.0;
+    const y = Math.random() * (wallSize / 2.0) + wallSize / 4.0;
+    const position = new Position(x, y);
+    if (player === null) {
+      return new Player(null, 0, position, getRandomColor());
+    }
+    player.v = 0;
+    player.position = position;
+    return player;
+  };
+
+  const getRandomColor = () => {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  };
+
+  const isNewPlayer = () => player.id === null;
+
+  const createPlayerDocAndSetId = async () => {
+    const playerRef = await playersRef.add({
+      x: player.position.x,
+      y: player.position.y,
+      c: player.color,
+      r: settings.rows,
+    });
+    player.id = playerRef.id;
+  };
+
+  const subscribePlayersListener = () => {
+    unsubscribePlayersListener = playersRef
+      .where('x', '>=', 0)
+      .onSnapshot(playersOnSnapshot);
+  };
+
+  const playersOnSnapshot = (queryPlayers) => {
+    const players = [];
+    queryPlayers.forEach((p) => {
+      const data = p.data();
+      players.push(new Player(null, 0, new Position(data.x, data.y), data.c));
+    });
+    drawMazeWithPlayers(players);
+  };
+
+  const updatePlayerPosition = async () => {
+    await playersRef.doc(player.id).update({
+      x: player.position.x,
+      y: player.position.y,
+      r: settings.rows,
+    });
+  };
+
+  const deleteUnusedPlayers = async () => {
+    await waitForActiveGames();
+    const players = await playersRef.get();
+    players.docs.map((p) => {
+      if (p.data().r !== settings.rows) deletePlayer(p.id);
+    });
+  };
+
+  const waitForActiveGames = () => new Promise((res) => setTimeout(res, 3000));
+
+  const deletePlayer = (id) => {
+    if (id !== null) playersRef.doc(id).delete();
+  };
+
+  const movePlayer = async (nextCell, wallSize, isVerticalMove) => {
+    if (maze.graph.adjacents(player.v).has(player.v + nextCell)) {
+      player.v = player.v + nextCell;
+      if (isVerticalMove) player.position.y = player.position.y + wallSize;
+      else player.position.x = player.position.x + wallSize;
+      if (!(await wasGoalReached())) await updatePlayerPosition();
+    }
+  };
+
+  const wasGoalReached = async () => {
+    if (player.v === maze.graph.V - 1) {
+      if (settings.rows >= settings.lastLevel) {
+        settings.rows = settings.startLevel;
+        settings.seed = getRandom(1, 1000);
+      } else {
+        settings.rows++;
+      }
+      await gameRef.doc('settings').update({
+        rows: settings.rows,
+        seed: settings.seed,
+      });
+      return true;
+    }
+    return false;
+  };
+
+  const drawMazeWithPlayers = (players) => {
+    drawMaze();
+    drawGoal(maze.goal.x, maze.goal.y);
+    for (let p of players) {
+      drawPlayer(p.position.x, p.position.y, p.color);
+    }
+  };
+
+  const drawMaze = () => {
+    context.clearRect(0, 0, canvas.width, canvas.width);
+    for (const wall of maze.walls) {
+      const v = wall.v;
+      const xWidth = maze.wallSize * (v % settings.rows);
+      const yHeight =
+        Math.floor(v / settings.rows) * maze.wallSize + maze.wallSize;
+      if (wall.isVertical) {
+        drawLine(
+          xWidth + maze.wallSize,
+          yHeight,
+          xWidth + maze.wallSize,
+          yHeight - maze.wallSize
+        );
+      } else {
+        drawLine(xWidth, yHeight, xWidth + maze.wallSize, yHeight);
+      }
+    }
+    drawLine(0.0, 0.0, 1.0, 0.0); // bottom line
+    drawLine(0.0, 0.0, 0.0, 1.0); // left line
+    drawLine(1.0, 0.0, 1.0, 1.0); // right line
+    drawLine(0.0, 1.0, 1.0, 1.0); // upper line
+  };
+
+  const drawLine = (x0, y0, x1, y1) => {
+    context.beginPath();
+    context.strokeStyle = colorMaze;
+    context.moveTo(scale(x0), scale(y0));
+    context.lineTo(scale(x1), scale(y1));
+    context.stroke();
+  };
+
+  const scale = (value) => {
+    return canvas.width * value;
+  };
+
+  const drawGoal = (x, y) => {
+    context.beginPath();
+    context.fillStyle = colorMaze;
+    context.rect(
+      scale(x),
+      scale(y),
+      scale(maze.wallSize) / 2.5,
+      scale(maze.wallSize) / 2.5
+    );
+    context.fill();
+  };
+
+  const drawPlayer = (x, y, color) => {
+    context.beginPath();
+    context.fillStyle = color;
+    context.arc(scale(x), scale(y), scale(maze.wallSize) / 5, 0, 2 * Math.PI);
+    context.fill();
+  };
+
+  const buildMazeUsingRandomizedKruskals = () => {
+    const wallSize = 1.0 / settings.rows;
+    const allWals = createAllWalls();
+    shuffle(allWals);
+    const [walls, spaces] = getWallsAndSpaces(allWals);
+    const graph = createGraphFromSpaces(spaces);
+    const goal = new Position(
+      1.0 - wallSize + wallSize / 3.3,
+      1.0 - wallSize + wallSize / 3.3
+    );
+    return [wallSize, walls, graph, goal];
+  };
+
+  const createAllWalls = () => {
+    const group = settings.rows - 1;
+    const numOfWalls = Math.floor(group * settings.rows * 2);
+    const allWals = [];
+    let vertical = 0;
+    let horizontal = settings.rows;
+    const half = Math.floor(numOfWalls / 2);
+    for (let i = 0, j = half; i < half; i++) {
+      allWals[i] = new Wall(vertical, ++vertical, true);
+      if (i % group === group - 1) vertical++;
+      allWals[j++] = new Wall(i, horizontal++, false);
+    }
+    return allWals;
+  };
+
+  const shuffle = (walls) => {
+    for (let i = 0; i < walls.length; i++) {
+      swap(i, getRandom(0, i), walls);
+    }
+  };
+
+  const swap = (i, j, walls) => {
+    const tmp = walls[i];
+    walls[i] = walls[j];
+    walls[j] = tmp;
+  };
+
+  const getRandom = (min, max) => {
+    return Math.floor(pseudorandom() * (max - min + 1)) + min;
+  };
+
+  const pseudorandom = () => {
+    const x = Math.sin(settings.seed++) * 10000;
+    return x - Math.floor(x);
+  };
+
+  const getWallsAndSpaces = (allWals) => {
+    const spaces = [];
+    const uf = new UnionFind(settings.rows * settings.rows);
+    for (let i = 0; i < allWals.length; i++) {
+      const wall = allWals[i];
+      if (!uf.isConnected(wall.v, wall.w)) {
+        uf.union(wall.v, wall.w);
+        spaces.push(wall);
+        allWals[i] = null;
+      }
+    }
+    const walls = [];
+    for (let i = 0; i < allWals.length; i++) {
+      if (allWals[i] !== null) walls.push(allWals[i]);
+    }
+    return [walls, spaces];
+  };
+
+  const createGraphFromSpaces = (spaces) => {
+    const graph = new Graph(settings.rows * settings.rows);
+    for (const wall of spaces) {
+      graph.addEdge(wall.v, wall.w);
+    }
+    return graph;
+  };
 })();

@@ -1,6 +1,6 @@
 # Maze Game
 
-A randomly generated online maze game, that can be play in real time with multiple players.
+A randomly generated maze game, that can be played in real-time with multiple players.
 
 No need to register, just open the following link on your web browser.
 

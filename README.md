@@ -1,6 +1,6 @@
 # Maze Game
 
-A randomly generated maze game, that can be played in real-time with multiple players.
+A multiplayer randomly generated maze game.
 
 No need to register, just open the following link on your web browser.
 
@@ -10,7 +10,7 @@ No need to register, just open the following link on your web browser.
 
 ## How to play
 
-Goal of the game is to move your player (circle) to the goal (black square).
+The goal of the game is to move your player (circle) to the goal (black square).
 Move your circle by pressing the buttons in the game or just press arrows/WASD keys.
 
 ## Implementation details
@@ -21,7 +21,7 @@ With the following tools:
 
 - JavaScript ES6
 
-- [Cloud Firestore](https://firebase.google.com/docs/firestore) from Firebase as a backend demo to record players position and maze settings.
+- [Cloud Firestore](https://firebase.google.com/docs/firestore) from Firebase as a backend demo to record players' positions and maze settings.
 
 - [HTML5 Canvas](https://www.w3schools.com/html/html5_canvas.asp) for 2D drawing.
 
@@ -83,4 +83,4 @@ firebase deploy
 
 10.- To view the collections go to your [Firebase console](https://console.firebase.google.com/) -> Project -> Cloud Firestore
 
-11.- The first time you start the game the **game** collection is going to be created with the **settings** document default values.
+11.- The first time you start the game, the **game** collection is going to be created with the **settings** document default values.
